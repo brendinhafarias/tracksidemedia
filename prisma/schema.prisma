@@ -1,0 +1,247 @@
+// Schema agnóstico o suficiente para trocar SQLite por PostgreSQL:
+// basta mudar `provider` e `DATABASE_URL` no .env.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PapelUsuario {
+  ADMIN
+  OPERADOR
+}
+
+enum RegimeFinanceiro {
+  CAIXA
+  COMPETENCIA
+}
+
+enum TipoCliente {
+  AVULSO
+  MENSALISTA
+}
+
+enum TipoCategoria {
+  ENTRADA
+  SAIDA
+}
+
+enum StatusCobranca {
+  ABERTA
+  PAGA
+  PARCIAL
+  CANCELADA
+}
+
+enum TipoLancamento {
+  ENTRADA
+  SAIDA
+}
+
+enum FormaPagamento {
+  PIX
+  TRANSFERENCIA
+  DINHEIRO
+  CARTAO
+  BOLETO
+  OUTRO
+}
+
+enum StatusLancamento {
+  PREVISTO
+  EFETIVADO
+  CANCELADO
+}
+
+enum OrigemLancamento {
+  MANUAL
+  ASSISTENTE
+  IMPORTACAO
+  RECORRENTE
+}
+
+enum TipoDistribuicao {
+  PRO_LABORE
+  LUCRO
+  ADIANTAMENTO
+}
+
+model ConfigEmpresa {
+  id                String           @id @default(cuid())
+  nomeEmpresa       String           @default("Minha Empresa")
+  percentualReserva Decimal          @default(10) // percentual (0-100)
+  regimePadrao      RegimeFinanceiro @default(CAIXA)
+  diaFechamento     Int              @default(1)
+  criadoEm          DateTime         @default(now())
+  atualizadoEm      DateTime         @updatedAt
+}
+
+model Usuario {
+  id           String       @id @default(cuid())
+  nome         String
+  email        String       @unique
+  senhaHash    String
+  papel        PapelUsuario @default(OPERADOR)
+  ativo        Boolean      @default(true)
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @updatedAt
+
+  logsAssistente LogAssistente[]
+  sessoes        Sessao[]
+}
+
+model Sessao {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  expiraEm  DateTime
+  criadoEm  DateTime @default(now())
+}
+
+model Socio {
+  id              String   @id @default(cuid())
+  nome            String
+  percentualLucro Decimal  @default(0) // soma dos ativos deve dar 100
+  proLaboreMensal Int? // centavos
+  ativo           Boolean  @default(true)
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  lancamentos    Lancamento[]
+  distribuicoes  Distribuicao[]
+}
+
+model Cliente {
+  id            String      @id @default(cuid())
+  nome          String
+  documento     String?
+  email         String?
+  telefone      String?
+  apelidos      String? // separados por vírgula, usados pelo assistente (fuzzy match)
+  tipo          TipoCliente @default(AVULSO)
+  valorMensal   Int? // centavos, obrigatório se MENSALISTA
+  diaVencimento Int? // 1-28
+  dataInicio    DateTime    @default(now())
+  dataFim       DateTime? // nula = ativo
+  observacoes   String?
+  arquivado     Boolean     @default(false)
+  criadoEm      DateTime    @default(now())
+  atualizadoEm  DateTime    @updatedAt
+
+  cobrancas   Cobranca[]
+  lancamentos Lancamento[]
+}
+
+model Categoria {
+  id           String        @id @default(cuid())
+  nome         String
+  tipo         TipoCategoria
+  cor          String        @default("#64748b")
+  arquivada    Boolean       @default(false)
+  criadoEm     DateTime      @default(now())
+  atualizadoEm DateTime      @updatedAt
+
+  lancamentos       Lancamento[]
+  despesasRecorrentes DespesaRecorrente[]
+}
+
+model Cobranca {
+  id              String         @id @default(cuid())
+  clienteId       String
+  cliente         Cliente        @relation(fields: [clienteId], references: [id])
+  competenciaMes  Int
+  competenciaAno  Int
+  valorDevido     Int // centavos
+  dataVencimento  DateTime
+  status          StatusCobranca @default(ABERTA)
+  observacao      String?
+  cancelada       Boolean        @default(false)
+  criadoEm        DateTime       @default(now())
+  atualizadoEm    DateTime       @updatedAt
+
+  lancamentos Lancamento[]
+
+  @@unique([clienteId, competenciaMes, competenciaAno])
+}
+
+model Lancamento {
+  id             String           @id @default(cuid())
+  tipo           TipoLancamento
+  valor          Int // centavos, sempre positivo
+  descricao      String
+  dataCaixa      DateTime?
+  competenciaMes Int
+  competenciaAno Int
+  categoriaId    String
+  categoria      Categoria        @relation(fields: [categoriaId], references: [id])
+  clienteId      String?
+  cliente        Cliente?         @relation(fields: [clienteId], references: [id])
+  socioId        String?
+  socio          Socio?           @relation(fields: [socioId], references: [id])
+  cobrancaId     String?
+  cobranca       Cobranca?        @relation(fields: [cobrancaId], references: [id])
+  formaPagamento FormaPagamento   @default(PIX)
+  status         StatusLancamento @default(PREVISTO)
+  origem         OrigemLancamento @default(MANUAL)
+  loteImportacaoId String?
+  despesaRecorrenteId String?
+  despesaRecorrente   DespesaRecorrente? @relation(fields: [despesaRecorrenteId], references: [id])
+  cancelado      Boolean          @default(false)
+  criadoEm       DateTime         @default(now())
+  atualizadoEm   DateTime         @updatedAt
+
+  distribuicao Distribuicao?
+  logsAssistente LogAssistente[]
+
+  @@index([dataCaixa])
+  @@index([competenciaAno, competenciaMes])
+  @@index([categoriaId])
+  @@index([clienteId])
+}
+
+model Distribuicao {
+  id             String           @id @default(cuid())
+  socioId        String
+  socio          Socio            @relation(fields: [socioId], references: [id])
+  competenciaMes Int
+  competenciaAno Int
+  tipo           TipoDistribuicao
+  valor          Int
+  dataPagamento  DateTime
+  lancamentoId   String           @unique
+  lancamento     Lancamento       @relation(fields: [lancamentoId], references: [id])
+  criadoEm       DateTime         @default(now())
+  atualizadoEm   DateTime         @updatedAt
+}
+
+model DespesaRecorrente {
+  id            String    @id @default(cuid())
+  descricao     String
+  valor         Int
+  categoriaId   String
+  categoria     Categoria @relation(fields: [categoriaId], references: [id])
+  diaVencimento Int
+  ativa         Boolean   @default(true)
+  criadoEm      DateTime  @default(now())
+  atualizadoEm  DateTime  @updatedAt
+
+  lancamentos Lancamento[]
+}
+
+model LogAssistente {
+  id             String      @id @default(cuid())
+  prompt         String
+  interpretacao  String // JSON serializado
+  acaoExecutada  String
+  entidadeId     String?
+  lancamentoId   String?
+  lancamento     Lancamento? @relation(fields: [lancamentoId], references: [id])
+  usuarioId      String
+  usuario        Usuario     @relation(fields: [usuarioId], references: [id])
+  desfeito       Boolean     @default(false)
+  criadoEm       DateTime    @default(now())
+}

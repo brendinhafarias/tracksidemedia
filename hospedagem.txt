@@ -1,0 +1,20 @@
+Passo a passo para hospedar na Railway
+Antes de escrever o guia, resolvi uma lacuna real: hoje a única forma de criar um usuário era o db:seed, que apaga tudo e cria dados fictícios — não dá pra rodar isso em produção. Criei o script npm run admin:criar, que só cria (ou atualiza) um usuário administrador de verdade, com nome/e-mail/senha que você escolhe. Testei e já removi o usuário de teste.
+
+Escrevi o guia completo no README (seção "Colocando no ar (hospedagem na Railway)"), mas o resumo é:
+
+Suba o código pro GitHub (git init → git add . → git commit → criar repo no GitHub → git push). Se preferir não usar GitHub, dá pra publicar direto do seu computador com a Railway CLI (railway login + railway up).
+Na Railway: New Project → Deploy from GitHub repo. Ela já detecta sozinha que é Next.js.
+Adicione um Volume (disco persistente) em Settings → Volumes, com mount path /data — isso é o que garante que seu banco SQLite não seja apagado a cada nova versão publicada.
+Configure as variáveis de ambiente:
+DATABASE_URL = file:/data/producao.db
+SESSION_SECRET = uma string aleatória longa
+Depois do primeiro deploy, abra o Shell do serviço na Railway e rode, uma única vez:
+
+npm run db:push
+npm run admin:criar
+O segundo comando pergunta seu nome, e-mail e senha reais.
+Gere o endereço público em Settings → Networking → Generate Domain.
+Depois disso, cada git push atualiza o site sozinho, e o banco continua intacto no volume. Faça backups periódicos pelo próprio sistema (Configurações → Backup e restauração).
+
+Importante: nunca rode npm run db:seed ou db:reset na produção — eles foram feitos só para o ambiente de testes local e apagam todos os dados reais.
