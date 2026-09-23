@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { agora } from "@/lib/data";
 import { formatarBRL } from "@/lib/dinheiro";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -14,16 +15,21 @@ import { BotaoVoltar } from "@/components/botao-voltar";
 import { FormularioDespesa } from "./formulario-despesa";
 import { BotaoAtivaDespesa } from "./botao-ativa";
 import { BotaoGerarDespesas } from "./botao-gerar";
+import { BotaoGerarImposto } from "./botao-gerar-imposto";
+import { calcularPrevisaoImposto } from "./acoes";
 
 export default async function PaginaDespesasRecorrentes() {
   const hoje = agora();
+  const mes = hoje.getMonth() + 1;
+  const ano = hoje.getFullYear();
 
-  const [despesas, categorias] = await Promise.all([
+  const [despesas, categorias, previsaoImposto] = await Promise.all([
     prisma.despesaRecorrente.findMany({
       include: { categoria: true },
       orderBy: [{ ativa: "desc" }, { descricao: "asc" }],
     }),
     prisma.categoria.findMany({ where: { tipo: "SAIDA", arquivada: false }, orderBy: { nome: "asc" } }),
+    calcularPrevisaoImposto(mes, ano),
   ]);
 
   return (
@@ -31,9 +37,29 @@ export default async function PaginaDespesasRecorrentes() {
       <div className="flex items-center gap-2 flex-wrap">
         <BotaoVoltar href="/config" />
         <h1 className="text-xl font-semibold flex-1">Despesas recorrentes</h1>
-        <BotaoGerarDespesas mes={hoje.getMonth() + 1} ano={hoje.getFullYear()} />
+        <BotaoGerarDespesas mes={mes} ano={ano} />
         <FormularioDespesa categorias={categorias} />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Imposto (Simples Nacional)</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {previsaoImposto.percentual > 0
+              ? `Alíquota atual: ${previsaoImposto.percentual}%. Estimativa deste mês: ${formatarBRL(previsaoImposto.valorImposto)}.`
+              : "Nenhuma alíquota configurada ainda."}
+          </p>
+          <BotaoGerarImposto
+            mes={mes}
+            ano={ano}
+            percentual={previsaoImposto.percentual}
+            entradas={previsaoImposto.entradas}
+            valorImposto={previsaoImposto.valorImposto}
+          />
+        </CardContent>
+      </Card>
 
       {despesas.length === 0 ? (
         <p className="text-sm text-muted-foreground">

@@ -10,6 +10,7 @@ export type EstadoFormulario = { erro?: string; sucesso?: boolean } | null;
 const esquemaEmpresa = z.object({
   nomeEmpresa: z.string().trim().min(1, "Informe o nome da empresa."),
   percentualReservaTexto: z.string().trim().min(1, "Informe o percentual de reserva."),
+  percentualImpostoTexto: z.string().trim().min(1, "Informe a alíquota de imposto."),
   regimePadrao: z.enum(["CAIXA", "COMPETENCIA"]),
   diaFechamentoTexto: z.string().trim().min(1),
 });
@@ -23,6 +24,7 @@ export async function atualizarConfigEmpresa(
   const dados = esquemaEmpresa.safeParse({
     nomeEmpresa: formData.get("nomeEmpresa"),
     percentualReservaTexto: formData.get("percentualReservaTexto"),
+    percentualImpostoTexto: formData.get("percentualImpostoTexto"),
     regimePadrao: formData.get("regimePadrao"),
     diaFechamentoTexto: formData.get("diaFechamentoTexto"),
   });
@@ -32,10 +34,14 @@ export async function atualizarConfigEmpresa(
   }
 
   const percentualReserva = Number(dados.data.percentualReservaTexto.replace(",", "."));
+  const percentualImposto = Number(dados.data.percentualImpostoTexto.replace(",", "."));
   const diaFechamento = Number(dados.data.diaFechamentoTexto);
 
   if (Number.isNaN(percentualReserva) || percentualReserva < 0 || percentualReserva > 100) {
     return { erro: "Percentual de reserva deve estar entre 0 e 100." };
+  }
+  if (Number.isNaN(percentualImposto) || percentualImposto < 0 || percentualImposto > 100) {
+    return { erro: "Alíquota de imposto deve estar entre 0 e 100." };
   }
   if (!Number.isInteger(diaFechamento) || diaFechamento < 1 || diaFechamento > 28) {
     return { erro: "Dia de fechamento deve ser entre 1 e 28." };
@@ -48,6 +54,7 @@ export async function atualizarConfigEmpresa(
       data: {
         nomeEmpresa: dados.data.nomeEmpresa,
         percentualReserva,
+        percentualImposto,
         regimePadrao: dados.data.regimePadrao,
         diaFechamento,
       },
@@ -57,6 +64,7 @@ export async function atualizarConfigEmpresa(
       data: {
         nomeEmpresa: dados.data.nomeEmpresa,
         percentualReserva,
+        percentualImposto,
         regimePadrao: dados.data.regimePadrao,
         diaFechamento,
       },

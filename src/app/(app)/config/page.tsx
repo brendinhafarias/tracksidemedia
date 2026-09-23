@@ -34,6 +34,7 @@ export default async function PaginaConfig() {
             config={{
               nomeEmpresa: config?.nomeEmpresa ?? "Minha Empresa",
               percentualReserva: config ? Number(config.percentualReserva) : 10,
+              percentualImposto: config ? Number(config.percentualImposto) : 0,
               regimePadrao: config?.regimePadrao ?? "CAIXA",
               diaFechamento: config?.diaFechamento ?? 1,
             }}

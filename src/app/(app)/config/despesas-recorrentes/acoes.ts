@@ -5,6 +5,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { exigirUsuario } from "@/lib/auth/exigir-usuario";
 import { paraCentavos } from "@/lib/dinheiro";
+import { obterRegime } from "@/lib/regime";
+import { totaisPeriodo } from "@/lib/consultas/financeiro";
+import { nomeMes } from "@/lib/data";
 
 export type EstadoFormulario = { erro?: string; sucesso?: boolean } | null;
 
@@ -136,4 +139,79 @@ export async function gerarLancamentosDespesasRecorrentes(
   revalidatePath("/lancamentos");
   revalidatePath("/");
   return { criadas, existentes };
+}
+
+async function categoriaImpostos() {
+  const categoria = await prisma.categoria.findFirst({
+    where: { nome: "Impostos", tipo: "SAIDA" },
+  });
+  if (categoria) return categoria.id;
+  const criada = await prisma.categoria.create({
+    data: { nome: "Impostos", tipo: "SAIDA", cor: "#b91c1c" },
+  });
+  return criada.id;
+}
+
+export type PrevisaoImposto = { percentual: number; entradas: number; valorImposto: number };
+
+/** Calcula (sem gravar) o imposto estimado do mês, com base nas entradas já efetivadas. */
+export async function calcularPrevisaoImposto(mes: number, ano: number): Promise<PrevisaoImposto> {
+  await exigirUsuario();
+  const config = await prisma.configEmpresa.findFirst();
+  const percentual = config ? Number(config.percentualImposto) : 0;
+  const regime = await obterRegime();
+  const { entradas } = await totaisPeriodo(mes, ano, regime);
+  const valorImposto = Math.round((entradas * percentual) / 100);
+  return { percentual, entradas, valorImposto };
+}
+
+export type ResultadoGeracaoImposto =
+  | { erro: string }
+  | { criado: true; valor: number }
+  | { criado: false; existente: true };
+
+/** Gera o lançamento PREVISTO do imposto (Simples Nacional) do mês, calculado sobre as entradas já efetivadas. Idempotente. */
+export async function gerarLancamentoImposto(mes: number, ano: number): Promise<ResultadoGeracaoImposto> {
+  await exigirUsuario();
+
+  const config = await prisma.configEmpresa.findFirst();
+  const percentual = config ? Number(config.percentualImposto) : 0;
+  if (!percentual || percentual <= 0) {
+    return { erro: "Configure a alíquota de imposto em Configurações antes de gerar." };
+  }
+
+  const jaExiste = await prisma.lancamento.findFirst({
+    where: { origem: "IMPOSTO", competenciaMes: mes, competenciaAno: ano },
+  });
+  if (jaExiste) {
+    return { criado: false, existente: true };
+  }
+
+  const regime = await obterRegime();
+  const { entradas } = await totaisPeriodo(mes, ano, regime);
+  const valorImposto = Math.round((entradas * percentual) / 100);
+  if (valorImposto <= 0) {
+    return { erro: "Ainda não há entradas lançadas neste mês para calcular o imposto." };
+  }
+
+  const categoriaId = await categoriaImpostos();
+
+  await prisma.lancamento.create({
+    data: {
+      tipo: "SAIDA",
+      valor: valorImposto,
+      descricao: `DAS - Simples Nacional (${percentual}% sobre ${nomeMes(mes)}/${ano})`,
+      dataCaixa: null,
+      competenciaMes: mes,
+      competenciaAno: ano,
+      categoriaId,
+      formaPagamento: "PIX",
+      status: "PREVISTO",
+      origem: "IMPOSTO",
+    },
+  });
+
+  revalidatePath("/lancamentos");
+  revalidatePath("/");
+  return { criado: true, valor: valorImposto };
 }

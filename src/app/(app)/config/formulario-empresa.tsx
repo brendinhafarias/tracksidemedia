@@ -17,6 +17,7 @@ import { atualizarConfigEmpresa, type EstadoFormulario } from "./acoes";
 type ConfigExistente = {
   nomeEmpresa: string;
   percentualReserva: number;
+  percentualImposto: number;
   regimePadrao: "CAIXA" | "COMPETENCIA";
   diaFechamento: number;
 };
@@ -63,6 +64,19 @@ export function FormularioEmpresa({ config }: { config: ConfigExistente }) {
             required
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="percentualImpostoTexto">Alíquota de imposto (Simples Nacional) (%)</Label>
+        <Input
+          id="percentualImpostoTexto"
+          name="percentualImpostoTexto"
+          defaultValue={String(config.percentualImposto)}
+          required
+        />
+        <p className="text-xs text-muted-foreground">
+          Percentual informado pelo seu contador. Usado para calcular o DAS previsto de cada mês em Despesas recorrentes.
+        </p>
       </div>
 
       <div className="space-y-2">

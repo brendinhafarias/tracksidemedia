@@ -61,6 +61,7 @@ enum OrigemLancamento {
   ASSISTENTE
   IMPORTACAO
   RECORRENTE
+  IMPOSTO
 }
 
 enum TipoDistribuicao {
@@ -73,6 +74,7 @@ model ConfigEmpresa {
   id                String           @id @default(cuid())
   nomeEmpresa       String           @default("Minha Empresa")
   percentualReserva Decimal          @default(10) // percentual (0-100)
+  percentualImposto Decimal          @default(0) // alíquota do Simples Nacional (0-100), informada pelo contador
   regimePadrao      RegimeFinanceiro @default(CAIXA)
   diaFechamento     Int              @default(1)
   criadoEm          DateTime         @default(now())
