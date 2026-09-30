@@ -75,6 +75,7 @@ model ConfigEmpresa {
   nomeEmpresa       String           @default("Minha Empresa")
   percentualReserva Decimal          @default(10) // percentual (0-100)
   percentualImposto Decimal          @default(0) // alíquota do Simples Nacional (0-100), informada pelo contador
+  saldoInicialPoupanca Int           @default(0) // centavos; valor que já existia na poupança antes de usar o sistema, não entra em Entradas/Saídas
   regimePadrao      RegimeFinanceiro @default(CAIXA)
   diaFechamento     Int              @default(1)
   criadoEm          DateTime         @default(now())

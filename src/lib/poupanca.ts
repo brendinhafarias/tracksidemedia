@@ -37,7 +37,7 @@ export async function obterOuCriarCategoriasPoupanca() {
 export async function obterSaldoPoupanca(): Promise<number> {
   const { deposito, retirada } = await obterCategoriasPoupanca();
 
-  const [somaDepositos, somaRetiradas] = await Promise.all([
+  const [somaDepositos, somaRetiradas, config] = await Promise.all([
     deposito
       ? prisma.lancamento.aggregate({
           where: { categoriaId: deposito.id, tipo: "SAIDA", status: "EFETIVADO", cancelado: false },
@@ -50,9 +50,16 @@ export async function obterSaldoPoupanca(): Promise<number> {
           _sum: { valor: true },
         })
       : null,
+    prisma.configEmpresa.findFirst(),
   ]);
 
-  return (somaDepositos?._sum.valor ?? 0) - (somaRetiradas?._sum.valor ?? 0);
+  const saldoInicial = config?.saldoInicialPoupanca ?? 0;
+  return saldoInicial + (somaDepositos?._sum.valor ?? 0) - (somaRetiradas?._sum.valor ?? 0);
+}
+
+export async function obterSaldoInicialPoupanca(): Promise<number> {
+  const config = await prisma.configEmpresa.findFirst();
+  return config?.saldoInicialPoupanca ?? 0;
 }
 
 export async function obterHistoricoPoupanca(limite = 50) {

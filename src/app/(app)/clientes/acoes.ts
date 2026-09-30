@@ -16,7 +16,7 @@ function extrairDados(formData: FormData) {
     telefone: formData.get("telefone"),
     apelidos: formData.get("apelidos"),
     tipo: formData.get("tipo"),
-    valorMensalTexto: formData.get("valorMensalTexto"),
+    valorMensalTexto: formData.get("valorMensalTexto") || undefined,
     diaVencimento: formData.get("diaVencimento") || undefined,
     observacoes: formData.get("observacoes"),
   });

@@ -57,3 +57,29 @@ export async function registrarMovimentoPoupanca(
   revalidatePath("/");
   return { sucesso: true };
 }
+
+export type EstadoSaldoInicial = { erro?: string; sucesso?: boolean } | null;
+
+/** Define o valor que a poupança já tinha antes de começar a usar o sistema. Não afeta Entradas/Saídas/Lucro de nenhum mês. */
+export async function ajustarSaldoInicialPoupanca(
+  _estado: EstadoSaldoInicial,
+  formData: FormData
+): Promise<EstadoSaldoInicial> {
+  await exigirUsuario();
+
+  const valor = paraCentavos(String(formData.get("valorTexto") ?? ""));
+  if (valor < 0) return { erro: "Informe um valor maior ou igual a zero." };
+
+  const existente = await prisma.configEmpresa.findFirst();
+  if (existente) {
+    await prisma.configEmpresa.update({
+      where: { id: existente.id },
+      data: { saldoInicialPoupanca: valor },
+    });
+  } else {
+    await prisma.configEmpresa.create({ data: { saldoInicialPoupanca: valor } });
+  }
+
+  revalidatePath("/poupanca");
+  return { sucesso: true };
+}

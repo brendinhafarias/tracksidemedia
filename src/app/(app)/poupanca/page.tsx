@@ -1,7 +1,7 @@
 import { PiggyBank } from "lucide-react";
 import { formatarBRL } from "@/lib/dinheiro";
 import { formatarData } from "@/lib/data";
-import { obterHistoricoPoupanca, obterSaldoPoupanca } from "@/lib/poupanca";
+import { obterHistoricoPoupanca, obterSaldoInicialPoupanca, obterSaldoPoupanca } from "@/lib/poupanca";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -12,15 +12,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FormularioMovimentoPoupanca } from "./formulario-movimento";
+import { FormularioSaldoInicial } from "./formulario-saldo-inicial";
 
 export default async function PaginaPoupanca() {
-  const [saldo, historico] = await Promise.all([obterSaldoPoupanca(), obterHistoricoPoupanca()]);
+  const [saldo, historico, saldoInicial] = await Promise.all([
+    obterSaldoPoupanca(),
+    obterHistoricoPoupanca(),
+    obterSaldoInicialPoupanca(),
+  ]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-xl font-semibold">Poupança</h1>
-        <FormularioMovimentoPoupanca />
+        <div className="flex gap-2">
+          <FormularioSaldoInicial saldoInicialAtual={saldoInicial} />
+          <FormularioMovimentoPoupanca />
+        </div>
       </div>
 
       <Card>
@@ -31,6 +39,11 @@ export default async function PaginaPoupanca() {
           <div>
             <p className="text-sm text-muted-foreground">Saldo atual</p>
             <p className="text-2xl font-semibold">{formatarBRL(saldo)}</p>
+            {saldoInicial > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Inclui {formatarBRL(saldoInicial)} de saldo inicial.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -39,12 +52,20 @@ export default async function PaginaPoupanca() {
         <CardHeader>
           <CardTitle className="text-base">Sobre a poupança</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Reserva para os meses sem corrida. Cada depósito aparece no fluxo de
-          caixa como uma saída (categoria &quot;Poupança - meses sem
-          corrida&quot;) e cada retirada aparece como uma entrada (categoria
-          &quot;Retirada da poupança&quot;) — assim o saldo fica sempre
-          batendo com os lançamentos normais, sem duplicar nada.
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p>
+            Reserva para os meses sem corrida. Cada depósito aparece no fluxo de
+            caixa como uma saída (categoria &quot;Poupança - meses sem
+            corrida&quot;) e cada retirada aparece como uma entrada (categoria
+            &quot;Retirada da poupança&quot;) — assim o saldo fica sempre
+            batendo com os lançamentos normais, sem duplicar nada.
+          </p>
+          <p>
+            Já tinha dinheiro guardado antes de usar o sistema? Use o botão
+            &quot;Saldo inicial&quot; em vez de lançar um depósito — assim esse
+            valor entra na poupança sem aparecer como saída em nenhum mês e sem
+            mexer no lucro.
+          </p>
         </CardContent>
       </Card>
 
