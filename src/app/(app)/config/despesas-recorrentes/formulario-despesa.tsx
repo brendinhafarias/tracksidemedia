@@ -85,10 +85,13 @@ export function FormularioDespesa({
                 name="diaVencimentoTexto"
                 type="number"
                 min={1}
-                max={28}
+                max={31}
                 defaultValue={despesa?.diaVencimento}
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Em meses mais curtos, cai no último dia do mês.
+              </p>
             </div>
           </div>
           <div className="space-y-2">

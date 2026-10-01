@@ -79,6 +79,21 @@ export function ultimosMeses(qtd: number, referencia?: { mes: number; ano: numbe
   return resultado;
 }
 
+/** Retorna o n-ésimo dia útil (seg-sex, sem considerar feriados) do mês/ano informado. */
+export function nEsimoDiaUtil(n: number, mes: number, ano: number): Date {
+  let contados = 0;
+  let dia = 1;
+  while (true) {
+    const data = new Date(ano, mes - 1, dia);
+    const diaSemana = data.getDay();
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      contados++;
+      if (contados === n) return data;
+    }
+    dia++;
+  }
+}
+
 export function diasEntre(a: Date, b: Date): number {
   const umDia = 1000 * 60 * 60 * 24;
   const dataA = new Date(a.getFullYear(), a.getMonth(), a.getDate());

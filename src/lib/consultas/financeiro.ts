@@ -40,6 +40,16 @@ export async function totaisAno(ano: number, regime: Regime): Promise<Totais> {
   return somarPorTipo(filtroAno(ano, regime));
 }
 
+/** Saldo em caixa: soma de todas as entradas efetivadas menos todas as saídas efetivadas, sem limite de período. */
+export async function saldoAtual(): Promise<number> {
+  const base: Prisma.LancamentoWhereInput = { status: "EFETIVADO", cancelado: false };
+  const [entradas, saidas] = await Promise.all([
+    prisma.lancamento.aggregate({ where: { ...base, tipo: "ENTRADA" }, _sum: { valor: true } }),
+    prisma.lancamento.aggregate({ where: { ...base, tipo: "SAIDA" }, _sum: { valor: true } }),
+  ]);
+  return (entradas._sum.valor ?? 0) - (saidas._sum.valor ?? 0);
+}
+
 /** Variação percentual de `atual` em relação a `anterior`. null quando não há base de comparação. */
 export function variacaoPercentual(atual: number, anterior: number): number | null {
   if (anterior === 0) return atual === 0 ? 0 : null;

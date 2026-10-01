@@ -11,13 +11,15 @@ import { FORMAS_PAGAMENTO } from "@/lib/validacao/lancamento";
 export type ResultadoGeracao = { criadas: number; existentes: number };
 
 /**
- * Gera as cobranças do mês/ano informado para todos os clientes mensalistas
- * ativos. Idempotente: cobranças já existentes (mesmo cliente + competência)
- * não são duplicadas.
+ * Gera as cobranças do mês/ano de referência informado para todos os clientes
+ * mensalistas ativos, usando a mesma data de vencimento para o lote inteiro.
+ * Idempotente: cobranças já existentes (mesmo cliente + competência) não são
+ * duplicadas.
  */
 export async function gerarMensalidades(
   mes: number,
-  ano: number
+  ano: number,
+  dataVencimento: Date
 ): Promise<ResultadoGeracao> {
   await exigirUsuario();
 
@@ -29,7 +31,7 @@ export async function gerarMensalidades(
   let existentes = 0;
 
   for (const cliente of clientes) {
-    if (!cliente.valorMensal || !cliente.diaVencimento) continue;
+    if (!cliente.valorMensal) continue;
 
     const jaExiste = await prisma.cobranca.findUnique({
       where: {
@@ -52,7 +54,7 @@ export async function gerarMensalidades(
         competenciaMes: mes,
         competenciaAno: ano,
         valorDevido: cliente.valorMensal,
-        dataVencimento: new Date(ano, mes - 1, cliente.diaVencimento),
+        dataVencimento,
         status: "ABERTA",
       },
     });

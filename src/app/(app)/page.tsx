@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TrendingUp, TrendingDown, Wallet, Clock, AlertTriangle, PiggyBank } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Clock, AlertTriangle, PiggyBank, Landmark } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { obterRegime } from "@/lib/regime";
 import { agora, formatarData, nomeMes, nomeMesAbreviado, ultimosMeses, mesAnterior } from "@/lib/data";
@@ -16,6 +16,7 @@ import {
   serieMensal,
   pendenciasDoMes,
   maioresAtrasos,
+  saldoAtual,
 } from "@/lib/consultas/financeiro";
 
 export default async function PaginaDashboard({
@@ -39,19 +40,21 @@ export default async function PaginaDashboard({
 
   const anterior = mesAnterior(mes, ano);
 
-  const [totaisAtual, totaisAnterior, pendencias, atrasos, ultimosLancamentos, saldoPoupanca] = await Promise.all([
-    totaisPeriodo(mes, ano, regime),
-    totaisPeriodo(anterior.mes, anterior.ano, regime),
-    pendenciasDoMes(mes, ano, hoje),
-    maioresAtrasos(hoje, 5),
-    prisma.lancamento.findMany({
-      where: { cancelado: false },
-      include: { categoria: true, cliente: true },
-      orderBy: { criadoEm: "desc" },
-      take: 10,
-    }),
-    obterSaldoPoupanca(),
-  ]);
+  const [totaisAtual, totaisAnterior, pendencias, atrasos, ultimosLancamentos, saldoPoupanca, saldoCaixa] =
+    await Promise.all([
+      totaisPeriodo(mes, ano, regime),
+      totaisPeriodo(anterior.mes, anterior.ano, regime),
+      pendenciasDoMes(mes, ano, hoje),
+      maioresAtrasos(hoje, 5),
+      prisma.lancamento.findMany({
+        where: { cancelado: false },
+        include: { categoria: true, cliente: true },
+        orderBy: { criadoEm: "desc" },
+        take: 10,
+      }),
+      obterSaldoPoupanca(),
+      saldoAtual(),
+    ]);
 
   const meses12 = ultimosMeses(12, { mes: hoje.getMonth() + 1, ano: hoje.getFullYear() });
   const serie = await serieMensal(meses12, regime);
@@ -73,7 +76,14 @@ export default async function PaginaDashboard({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-7">
+        <CartaoMetrica
+          titulo="Saldo em caixa"
+          valor={saldoCaixa}
+          corValor={saldoCaixa < 0 ? "text-red-600" : undefined}
+          icone={Landmark}
+          tom="primary"
+        />
         <CartaoMetrica
           titulo="Entradas"
           valor={totaisAtual.entradas}

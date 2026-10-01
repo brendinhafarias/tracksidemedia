@@ -38,8 +38,8 @@ export async function criarDespesaRecorrente(
   const valor = paraCentavos(dados.data.valorTexto);
   if (valor <= 0) return { erro: "Informe um valor maior que zero." };
   const diaVencimento = Number(dados.data.diaVencimentoTexto);
-  if (!Number.isInteger(diaVencimento) || diaVencimento < 1 || diaVencimento > 28) {
-    return { erro: "Dia de vencimento deve ser entre 1 e 28." };
+  if (!Number.isInteger(diaVencimento) || diaVencimento < 1 || diaVencimento > 31) {
+    return { erro: "Dia de vencimento deve ser entre 1 e 31." };
   }
 
   await prisma.despesaRecorrente.create({
@@ -67,8 +67,8 @@ export async function atualizarDespesaRecorrente(
   const valor = paraCentavos(dados.data.valorTexto);
   if (valor <= 0) return { erro: "Informe um valor maior que zero." };
   const diaVencimento = Number(dados.data.diaVencimentoTexto);
-  if (!Number.isInteger(diaVencimento) || diaVencimento < 1 || diaVencimento > 28) {
-    return { erro: "Dia de vencimento deve ser entre 1 e 28." };
+  if (!Number.isInteger(diaVencimento) || diaVencimento < 1 || diaVencimento > 31) {
+    return { erro: "Dia de vencimento deve ser entre 1 e 31." };
   }
 
   await prisma.despesaRecorrente.update({
