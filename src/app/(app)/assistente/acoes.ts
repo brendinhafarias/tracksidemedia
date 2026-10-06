@@ -474,6 +474,21 @@ export async function confirmarAcaoAssistente(
   if (!campos.categoriaId) return { erro: "Selecione uma categoria." };
   if (!campos.descricao.trim()) return { erro: "Informe uma descrição." };
 
+  const categoria = await prisma.categoria.findUnique({ where: { id: campos.categoriaId } });
+  if (!categoria) return { erro: "Essa categoria não existe mais. Recomece a conversa e tente de novo." };
+  if (campos.clienteId) {
+    const cliente = await prisma.cliente.findUnique({ where: { id: campos.clienteId } });
+    if (!cliente) return { erro: "Esse cliente não existe mais. Recomece a conversa e tente de novo." };
+  }
+  if (campos.socioId) {
+    const socio = await prisma.socio.findUnique({ where: { id: campos.socioId } });
+    if (!socio) return { erro: "Esse sócio não existe mais. Recomece a conversa e tente de novo." };
+  }
+  if (campos.cobrancaId) {
+    const cobranca = await prisma.cobranca.findUnique({ where: { id: campos.cobrancaId } });
+    if (!cobranca) return { erro: "Essa cobrança não existe mais. Recomece a conversa e tente de novo." };
+  }
+
   const [ano, mes, dia] = campos.dataCaixa.split("-").map(Number);
   const dataCaixa = ano && mes && dia ? new Date(ano, mes - 1, dia) : agora();
 

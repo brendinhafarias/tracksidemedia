@@ -44,6 +44,9 @@ export async function criarLancamento(
 
   const dataCaixa = paraDataLocal(dados.data.dataCaixa);
 
+  const erroReferencia = await validarReferencias(dados.data.categoriaId, dados.data.clienteId);
+  if (erroReferencia) return { erro: erroReferencia };
+
   await prisma.lancamento.create({
     data: {
       tipo: dados.data.tipo,
@@ -65,6 +68,26 @@ export async function criarLancamento(
   return { sucesso: true };
 }
 
+/**
+ * Confere se a categoria (e o cliente, se informado) ainda existem antes de gravar.
+ * Evita o erro genérico de "foreign key" quando o formulário ficou aberto com
+ * uma lista desatualizada (ex.: categoria removida, ou o navegador com a aba
+ * aberta de antes de uma atualização do banco).
+ */
+async function validarReferencias(categoriaId: string, clienteId?: string | null): Promise<string | null> {
+  const categoria = await prisma.categoria.findUnique({ where: { id: categoriaId } });
+  if (!categoria) {
+    return "Essa categoria não existe mais. Atualize a página (F5) e selecione a categoria de novo.";
+  }
+  if (clienteId) {
+    const cliente = await prisma.cliente.findUnique({ where: { id: clienteId } });
+    if (!cliente) {
+      return "Esse cliente não existe mais. Atualize a página (F5) e selecione o cliente de novo.";
+    }
+  }
+  return null;
+}
+
 export async function atualizarLancamento(
   id: string,
   _estado: EstadoFormulario,
@@ -82,6 +105,9 @@ export async function atualizarLancamento(
   }
 
   const dataCaixa = paraDataLocal(dados.data.dataCaixa);
+
+  const erroReferencia = await validarReferencias(dados.data.categoriaId, dados.data.clienteId);
+  if (erroReferencia) return { erro: erroReferencia };
 
   const atualizado = await prisma.lancamento.update({
     where: { id },
