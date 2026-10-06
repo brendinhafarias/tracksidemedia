@@ -14,6 +14,7 @@ import {
 export type EstadoFormulario = { erro?: string; sucesso?: boolean } | null;
 
 function extrairDados(formData: FormData) {
+  const clienteId = formData.get("clienteId");
   return esquemaLancamento.safeParse({
     tipo: formData.get("tipo"),
     valorTexto: formData.get("valorTexto"),
@@ -22,7 +23,8 @@ function extrairDados(formData: FormData) {
     competenciaMes: formData.get("competenciaMes"),
     competenciaAno: formData.get("competenciaAno"),
     categoriaId: formData.get("categoriaId"),
-    clienteId: formData.get("clienteId"),
+    // "__nenhum" é o valor sentinela do Select pra "nenhum cliente" — nunca é um ID real.
+    clienteId: clienteId === "__nenhum" ? "" : clienteId,
     formaPagamento: formData.get("formaPagamento"),
   });
 }
