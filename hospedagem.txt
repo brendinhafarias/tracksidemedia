@@ -18,4 +18,4 @@ Gere o endereço público em Settings → Networking → Generate Domain.
 Depois disso, cada git push atualiza o site sozinho, e o banco continua intacto no volume. Faça backups periódicos pelo próprio sistema (Configurações → Backup e restauração).
 
 Importante: nunca rode npm run db:seed ou db:reset na produção — eles foram feitos só para o ambiente de testes local e apagam todos os dados reais.
-egkfmweopfnpeoinfopiefjeoifjeoijfoeijfWEFMSPOFMWPOFPOWKF
+egkfmweopfnpeoWFJWFJWH9WHFIUWFHIWUFHIWHFI
